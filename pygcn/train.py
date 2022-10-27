@@ -68,7 +68,7 @@ def train(epoch):
     #print(len(labels))
     #raise("exception")
     loss_train = F.nll_loss(output[idx_train], labels[idx_train])
-    acc_train = accuracy(output[idx_train], labels[idx_train])
+    acc_train, mrr_train = accuracy(output[idx_train], labels[idx_train])
     loss_train.backward()
     optimizer.step()
 
@@ -79,12 +79,14 @@ def train(epoch):
         output = model(features, adj)
 
     loss_val = F.nll_loss(output[idx_val], labels[idx_val])
-    acc_val = accuracy(output[idx_val], labels[idx_val])
+    acc_val, mrr_val = accuracy(output[idx_val], labels[idx_val])
     print('Epoch: {:04d}'.format(epoch+1),
           'loss_train: {:.4f}'.format(loss_train.item()),
           'acc_train: {:.4f}'.format(acc_train.item()),
+          'mrr_train: {:.4f}'.format(mrr_train),
           'loss_val: {:.4f}'.format(loss_val.item()),
           'acc_val: {:.4f}'.format(acc_val.item()),
+          'mrr_val: {:.4f}'.format(mrr_val),
           'time: {:.4f}s'.format(time.time() - t))
     #test()
 
@@ -93,11 +95,11 @@ def test():
     model.eval()
     output = model(features, adj)
     loss_test = F.nll_loss(output[idx_test], labels[idx_test])
-    acc_test = accuracy(output[idx_test], labels[idx_test])
+    acc_test, mrr_test = accuracy(output[idx_test], labels[idx_test])
     print("Test set results:",
           "loss= {:.4f}".format(loss_test.item()),
-          "accuracy= {:.4f}".format(acc_test.item()))
-
+          "accuracy= {:.4f}".format(acc_test.item()),
+          "mrr= {:.4f}".format(mrr_test))
 
 # Train model
 t_total = time.time()

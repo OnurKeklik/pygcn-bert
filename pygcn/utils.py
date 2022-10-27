@@ -81,9 +81,9 @@ def accuracy(output, labels):
     preds = output.max(1)[1].type_as(labels)
     correct = preds.eq(labels).double()
     correct = correct.sum()
-    print("mrr is: ")
-    print(mrr / len(labels))
-    return correct / len(labels)
+    #print("mrr is: ")
+    #print(mrr / len(labels))
+    return correct / len(labels), mrr / len(labels)
 
 
 def sparse_mx_to_torch_sparse_tensor(sparse_mx):
