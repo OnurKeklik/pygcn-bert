@@ -44,7 +44,9 @@ def cut_off_dataset(df, frequency=5):
 
 f1 = open("../data/custom/PeerRead.cites", "w")
 f2 = open("../data/custom/PeerRead.content", "w")
-max_seq_length = 50
+max_sen_length = 50
+max_abstract_length = 200
+max_seq_length = max_sen_length + max_abstract_length
 dictionary = { }
 idx_dictionary = { }
 current_idx = 1
@@ -76,17 +78,21 @@ for index, row in df.iterrows():
     left = row["left_citated_text"]
     right = row["right_citated_text"]
 
+    source_abstract = row["source_abstract"]
+    target_abstract = row["target_abstract"]
+    tokens_source_abstract = tokenizer.tokenize(source_abstract[0:max_abstract_length - 1])
+
     tokens_a = tokenizer.tokenize(left[-512:])
     tokens_b = tokenizer.tokenize(right[0:512])
     if tokens_b:
         # Modifies `tokens_a` and `tokens_b` in place so that the total
         # length is less than the specified length.
         # Account for [CLS], [SEP], [SEP] with "- 3"
-        _truncate_seq_pair(tokens_a, tokens_b, max_seq_length - 3)
+        _truncate_seq_pair(tokens_a, tokens_b, max_sen_length - 3)
     else:
         # Account for [CLS] and [SEP] with "- 2"
-        if len(tokens_a) > max_seq_length - 2:
-            tokens_a = tokens_a[0:(max_seq_length - 2)]
+        if len(tokens_a) > max_sen_length - 2:
+            tokens_a = tokens_a[0:(max_sen_length - 2)]
     tokens = []
     segment_ids = []
     tokens.append("[CLS]")
@@ -104,8 +110,13 @@ for index, row in df.iterrows():
         tokens.append("[SEP]")
         segment_ids.append(1)
 
+    if tokens_source_abstract:
+        for token in tokens_source_abstract:
+            tokens.append(token)
+            segment_ids.append(2)
+        tokens.append("[SEP]")
+        segment_ids.append(2)
     input_ids = tokenizer.convert_tokens_to_ids(tokens)
-
     # The mask has 1 for real tokens and 0 for padding tokens. Only real
     # tokens are attended to.
     input_mask = [1] * len(input_ids)
@@ -119,7 +130,6 @@ for index, row in df.iterrows():
     assert len(input_ids) == max_seq_length
     assert len(input_mask) == max_seq_length
     assert len(segment_ids) == max_seq_length
-
     input_ids_tensor = torch.from_numpy(np.array([input_ids], dtype=np.int))
     input_mask_tensor = torch.from_numpy(np.array([input_mask], dtype=np.int))
 

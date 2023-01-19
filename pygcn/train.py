@@ -27,7 +27,7 @@ parser.add_argument('--weight_decay', type=float, default=2e-5,
                     help='Weight decay (L2 loss on parameters).')
 parser.add_argument('--hidden', type=int, default=256,
                     help='Number of hidden units.')
-parser.add_argument('--dropout', type=float, default=0.2, #0.4098
+parser.add_argument('--dropout', type=float, default=0.2, #0.6943, 0.7012
                     help='Dropout rate (1 - keep probability).')
 
 args = parser.parse_args()
