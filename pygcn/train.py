@@ -19,7 +19,7 @@ parser.add_argument('--no-cuda', action='store_true', default=False,
 parser.add_argument('--fastmode', action='store_true', default=False,
                     help='Validate during training pass.')
 parser.add_argument('--seed', type=int, default=42, help='Random seed.')
-parser.add_argument('--epochs', type=int, default=500,
+parser.add_argument('--epochs', type=int, default=1500,
                     help='Number of epochs to train.')
 parser.add_argument('--lr', type=float, default=0.01,
                     help='Initial learning rate.')
@@ -27,19 +27,24 @@ parser.add_argument('--weight_decay', type=float, default=2e-5,
                     help='Weight decay (L2 loss on parameters).')
 parser.add_argument('--hidden', type=int, default=256,
                     help='Number of hidden units.')
-parser.add_argument('--dropout', type=float, default=0.2, #0.6943, 0.7012
+parser.add_argument('--dropout', type=float, default=0.6,
                     help='Dropout rate (1 - keep probability).')
+parser.add_argument('--train_size', type=int)
+parser.add_argument('--val_size', type=int)
+parser.add_argument('--test_size', type=int)
+parser.add_argument('--dataset_name', type=str)
+
+loss = torch.nn.NLLLoss()
 
 args = parser.parse_args()
 args.cuda = not args.no_cuda and torch.cuda.is_available()
-
 np.random.seed(args.seed)
 torch.manual_seed(args.seed)
 if args.cuda:
     torch.cuda.manual_seed(args.seed)
 
 # Load data
-adj, features, labels, idx_train, idx_val, idx_test = load_data()
+adj, features, labels, idx_train, idx_val, idx_test = load_data(args)
 
 # Model and optimizer
 model = GCN(nfeat=features.shape[1],
@@ -67,8 +72,8 @@ def train(epoch):
     #print(len(output))
     #print(len(labels))
     #raise("exception")
-    loss_train = F.nll_loss(output[idx_train], labels[idx_train])
-    acc_train, mrr_train = accuracy(output[idx_train], labels[idx_train])
+    loss_train = loss(output[idx_train], labels[idx_train])
+    acc_train, mrr_train, recall_train = accuracy(output[idx_train], labels[idx_train])
     loss_train.backward()
     optimizer.step()
 
@@ -78,27 +83,42 @@ def train(epoch):
         model.eval()
         output = model(features, adj)
 
-    loss_val = F.nll_loss(output[idx_val], labels[idx_val])
-    acc_val, mrr_val = accuracy(output[idx_val], labels[idx_val])
+    loss_val = loss(output[idx_val], labels[idx_val])
+    acc_val, mrr_val, recall_val = accuracy(output[idx_val], labels[idx_val])
     print('Epoch: {:04d}'.format(epoch+1),
           'loss_train: {:.4f}'.format(loss_train.item()),
           'acc_train: {:.4f}'.format(acc_train.item()),
+          'recall@1_train: {:.4f}'.format(recall_train[0]),
+          'recall@3_train: {:.4f}'.format(recall_train[2]),
+          'recall@5_train: {:.4f}'.format(recall_train[4]),
+          'recall@7_train: {:.4f}'.format(recall_train[6]),
+          'recall@10_train: {:.4f}'.format(recall_train[9]),
           'mrr_train: {:.4f}'.format(mrr_train),
           'loss_val: {:.4f}'.format(loss_val.item()),
           'acc_val: {:.4f}'.format(acc_val.item()),
+          'recall@1_val: {:.4f}'.format(recall_val[0]),
+          'recall@3_val: {:.4f}'.format(recall_val[2]),
+          'recall@5_val: {:.4f}'.format(recall_val[4]),
+          'recall@7_val: {:.4f}'.format(recall_val[6]),
+          'recall@10_val: {:.4f}'.format(recall_val[9]),
           'mrr_val: {:.4f}'.format(mrr_val),
           'time: {:.4f}s'.format(time.time() - t))
-    #test()
+    test()
 
 
 def test():
     model.eval()
     output = model(features, adj)
-    loss_test = F.nll_loss(output[idx_test], labels[idx_test])
-    acc_test, mrr_test = accuracy(output[idx_test], labels[idx_test])
+    loss_test = loss(output[idx_test], labels[idx_test])
+    acc_test, mrr_test, recall_test = accuracy(output[idx_test], labels[idx_test])
     print("Test set results:",
           "loss= {:.4f}".format(loss_test.item()),
           "accuracy= {:.4f}".format(acc_test.item()),
+          'recall@1: {:.4f}'.format(recall_test[0]),
+          'recall@3: {:.4f}'.format(recall_test[2]),
+          'recall@5: {:.4f}'.format(recall_test[4]),
+          'recall@7: {:.4f}'.format(recall_test[6]),
+          'recall@10: {:.4f}'.format(recall_test[9]),
           "mrr= {:.4f}".format(mrr_test))
 
 # Train model

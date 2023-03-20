@@ -1,6 +1,7 @@
 import numpy as np
 import scipy.sparse as sp
 import torch
+import sys
 
 def encode_onehot(labels):
     classes = set(labels)
@@ -12,10 +13,11 @@ def encode_onehot(labels):
 
 
 #def load_data(path="../data/cora/", dataset="cora"):
-def load_data(path="../data/custom/", dataset="PeerRead"):
-    """Load citation network dataset (cora only for now)"""
-    print('Loading {} dataset...'.format(dataset))
-    idx_features_labels = np.genfromtxt("{}{}.content".format(path, dataset),
+def load_data(args):
+    path = "../data/" + args.dataset_name  + "/"
+    file_name = "data"
+    print('Loading {}'.format(path + file_name))
+    idx_features_labels = np.genfromtxt("{}{}.content".format(path, file_name),
                                         dtype=np.dtype(str))
 
     features = sp.csr_matrix(idx_features_labels[:, 1:-1], dtype=np.float32)
@@ -24,7 +26,7 @@ def load_data(path="../data/custom/", dataset="PeerRead"):
     # build graph
     idx = np.array(idx_features_labels[:, 0], dtype=np.int32)
     idx_map = {j: i for i, j in enumerate(idx)}
-    edges_unordered = np.genfromtxt("{}{}.cites".format(path, dataset),
+    edges_unordered = np.genfromtxt("{}{}.cites".format(path, file_name),
                                     dtype=np.int32)
 
     ll = list(map(idx_map.get, edges_unordered.flatten()));
@@ -44,10 +46,18 @@ def load_data(path="../data/custom/", dataset="PeerRead"):
 
     features = normalize(features)
     adj = normalize(adj + sp.eye(adj.shape[0]))
-    idx_test = range(0, 2446)
-    idx_val = range(2446, 12230)
-    idx_train = range(2446, 12230)
+
+    idx_train = range(0, args.train_size)
+    idx_val = range(args.train_size, args.val_size)
+    idx_test = range(args.val_size, args.test_size)
     
+    #idx_train = range(0, 9363)
+    #idx_val = range(9363, 9855)
+    #idx_test = range(9855, 16669)
+    #idx_train = range(0, 30390)
+    #idx_val = range(30390, 39771)
+    #idx_test = range(39771, 49356)  
+
     features = torch.FloatTensor(np.array(features.todense()))
     labels = torch.LongTensor(np.where(labels)[1])
     adj = sparse_mx_to_torch_sparse_tensor(adj)
@@ -70,20 +80,25 @@ def normalize(mx):
 
 
 def accuracy(output, labels):
-    mrr = 0.0
-    top_preds = torch.topk(output, 20).indices;
+    mrr = 0
+    recall_list = [0,0,0,0,0,0,0,0,0,0]
+    top_preds = torch.topk(output, 50).indices;
     for i in range(0, len(labels)):
-        for j in range(0, len(top_preds[i].numpy())):
-            if top_preds[i].numpy()[j] == labels[i].numpy():
+        top_preds_nmpy = top_preds[i].numpy()
+        label = labels[i].numpy()
+        for j in range(0, len(top_preds_nmpy)):
+            if top_preds_nmpy[j] == label:
                 mrr = mrr + (1 / (j + 1))
+                if j < 10:
+                    for k in range(j, 10):
+                        recall_list[k] = recall_list[k] + 1;
                 break
 
+    recall_scores = [x / len(labels) for x in recall_list]
     preds = output.max(1)[1].type_as(labels)
     correct = preds.eq(labels).double()
     correct = correct.sum()
-    #print("mrr is: ")
-    #print(mrr / len(labels))
-    return correct / len(labels), mrr / len(labels)
+    return correct / len(labels), mrr / len(labels), recall_scores
 
 
 def sparse_mx_to_torch_sparse_tensor(sparse_mx):
