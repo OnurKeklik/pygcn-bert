@@ -30,8 +30,8 @@ train = json.load(tr)
 val = json.load(v)
 test = json.load(te)
 
-tokenizer = AutoTokenizer.from_pretrained("pritamdeka/S-Scibert-snli-multinli-stsb")
-model = AutoModel.from_pretrained("pritamdeka/S-Scibert-snli-multinli-stsb")
+tokenizer = AutoTokenizer.from_pretrained("sentence-transformers/allenai-specter")
+model = AutoModel.from_pretrained("sentence-transformers/allenai-specter")
 
 
 #Mean Pooling - Take attention mask into account for correct averaging
