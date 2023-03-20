@@ -41,6 +41,7 @@ args.cuda = not args.no_cuda and torch.cuda.is_available()
 np.random.seed(args.seed)
 torch.manual_seed(args.seed)
 if args.cuda:
+    print("using cuda..")
     torch.cuda.manual_seed(args.seed)
 
 # Load data

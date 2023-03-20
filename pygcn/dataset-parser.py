@@ -5,6 +5,7 @@ import torch
 import sys
 #numpy.set_printoptions(threshold=sys.maxsize)
 from transformers import AutoTokenizer, AutoModel
+from tqdm import tqdm
 
 dataset = sys.argv[1]
 print("selected dataset is: " + sys.argv[1])
@@ -155,15 +156,18 @@ train_length = 0
 val_length = 0
 test_length = 0
 print("generating embeddings for train dataset..")
-for d in train:
+for i in tqdm(range(len(train))):
+    d = train[i]
     write_citation(context[d["context_id"]])
     train_length = train_length + 1
 print("generating embeddings for validation dataset..")
-for d in val:
+for i in tqdm(range(len(val))):
+    d = val[i]
     write_citation(context[d["context_id"]])
     val_length = val_length + 1
 print("generating embeddings for test dataset..")
-for d in test:
+for i in tqdm(range(len(test))):
+    d = test[i]
     write_citation(context[d["context_id"]])
     test_length = test_length + 1
 f1.close()
