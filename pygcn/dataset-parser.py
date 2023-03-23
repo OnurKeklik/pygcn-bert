@@ -32,8 +32,9 @@ val = json.load(v)
 test = json.load(te)
 
 device = "cuda:0" if torch.cuda.is_available() else "cpu"
-tokenizer = AutoTokenizer.from_pretrained("sentence-transformers/allenai-specter")
-model = AutoModel.from_pretrained("sentence-transformers/allenai-specter")
+print("current device is: " + device)
+tokenizer = AutoTokenizer.from_pretrained("pritamdeka/S-Scibert-snli-multinli-stsb")
+model = AutoModel.from_pretrained("pritamdeka/S-Scibert-snli-multinli-stsb")
 model = model.to(device)
 
 #Mean Pooling - Take attention mask into account for correct averaging
@@ -138,8 +139,8 @@ def write_citation(row):
 
     assert len(input_ids) == max_seq_length
     assert len(input_mask) == max_seq_length
-    input_ids_tensor = torch.from_numpy(np.array([input_ids], dtype=np.int)).to(device)
-    input_mask_tensor = torch.from_numpy(np.array([input_mask], dtype=np.int)).to(device)
+    input_ids_tensor = torch.from_numpy(np.array([input_ids], dtype=int)).to(device)
+    input_mask_tensor = torch.from_numpy(np.array([input_mask], dtype=int)).to(device)
 
     encoded_input = {
         "input_ids": input_ids_tensor,

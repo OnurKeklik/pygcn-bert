@@ -2,11 +2,35 @@ import numpy as np
 import scipy.sparse as sp
 import torch
 import sys
+from sklearn.preprocessing import OneHotEncoder
+from sklearn.preprocessing import LabelEncoder
+from numpy import array
+import json
+
+def dataset_split(dataset_name):
+    tr = open("../data/" + dataset_name + "/train.json")
+    v = open("../data/" + dataset_name + "/val.json")
+    te = open("../data/" + dataset_name + "/test.json")
+    train = json.load(tr)
+    val = json.load(v)
+    test = json.load(te)
+    return len(train), len(val), len(test)
+
+
+def encode_onehot_efficient(labels):
+    values = array(labels)
+    onehot_encoder = OneHotEncoder(sparse=False)
+    label_encoder = LabelEncoder()
+    integer_encoded = label_encoder.fit_transform(values)
+    integer_encoded = integer_encoded.reshape(len(integer_encoded), 1)
+    onehot_encoded = onehot_encoder.fit_transform(integer_encoded)
+    return onehot_encoded;
 
 def encode_onehot(labels):
     classes = set(labels)
     classes_dict = {c: np.identity(len(classes))[i, :] for i, c in
                     enumerate(classes)}
+
     labels_onehot = np.array(list(map(classes_dict.get, labels)),
                              dtype=np.int32)
     return labels_onehot
@@ -17,11 +41,17 @@ def load_data(args):
     path = "../data/" + args.dataset_name  + "/"
     file_name = "data"
     print('Loading {}'.format(path + file_name))
+
+    train_size, val_size, test_size = dataset_split(args.dataset_name)
+    idx_train = range(0, train_size)
+    idx_val = range(train_size, train_size + val_size)
+    idx_test = range(train_size + val_size, train_size + val_size + test_size)
+
     idx_features_labels = np.genfromtxt("{}{}.content".format(path, file_name),
                                         dtype=np.dtype(str))
 
     features = sp.csr_matrix(idx_features_labels[:, 1:-1], dtype=np.float32)
-    labels = encode_onehot(idx_features_labels[:, -1])
+    labels = encode_onehot_efficient(idx_features_labels[:, -1])
 
     # build graph
     idx = np.array(idx_features_labels[:, 0], dtype=np.int32)
@@ -46,10 +76,6 @@ def load_data(args):
 
     features = normalize(features)
     adj = normalize(adj + sp.eye(adj.shape[0]))
-
-    idx_train = range(0, args.train_size)
-    idx_val = range(args.train_size, args.val_size)
-    idx_test = range(args.val_size, args.test_size)
     
     #idx_train = range(0, 9363)
     #idx_val = range(9363, 9855)
@@ -84,10 +110,10 @@ def accuracy(output, labels):
     recall_list = [0,0,0,0,0,0,0,0,0,0]
     top_preds = torch.topk(output, 50).indices;
     for i in range(0, len(labels)):
-        top_preds_nmpy = top_preds[i].numpy()
-        label = labels[i].numpy()
-        for j in range(0, len(top_preds_nmpy)):
-            if top_preds_nmpy[j] == label:
+        top_preds_list = top_preds[i].tolist()
+        label = labels[i].tolist()
+        for j in range(0, len(top_preds_list)):
+            if top_preds_list[j] == label:
                 mrr = mrr + (1 / (j + 1))
                 if j < 10:
                     for k in range(j, 10):
