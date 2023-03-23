@@ -47,16 +47,15 @@ def load_data(args):
     idx_val = range(train_size, train_size + val_size)
     idx_test = range(train_size + val_size, train_size + val_size + test_size)
 
-    idx_features_labels = np.genfromtxt("{}{}.content".format(path, file_name),
+    idx_features_labels = np.loadtxt("{}{}.content".format(path, file_name),
                                         dtype=np.dtype(str))
-
     features = sp.csr_matrix(idx_features_labels[:, 1:-1], dtype=np.float32)
     labels = encode_onehot_efficient(idx_features_labels[:, -1])
 
     # build graph
     idx = np.array(idx_features_labels[:, 0], dtype=np.int32)
     idx_map = {j: i for i, j in enumerate(idx)}
-    edges_unordered = np.genfromtxt("{}{}.cites".format(path, file_name),
+    edges_unordered = np.loadtxt("{}{}.cites".format(path, file_name),
                                     dtype=np.int32)
 
     ll = list(map(idx_map.get, edges_unordered.flatten()));
