@@ -27,7 +27,7 @@ def getAdjLabels(path, file_name):
     adj = sp.coo_matrix((np.ones(edges.shape[0]), (edges[:, 0], edges[:, 1])),
                         shape=(labels.shape[0], labels.shape[0]),
                         dtype=np.float32)
-    labels = torch.LongTensor(np.where(labels)[1])
+    labels = torch.LongTensor(labels.nonzero()[1])
     adj = adj + adj.T.multiply(adj.T > adj) - adj.multiply(adj.T > adj)
     adj = normalize(adj + sp.eye(adj.shape[0]))
     adj = sparse_mx_to_torch_sparse_tensor(adj)
@@ -66,7 +66,7 @@ def dataset_split(dataset_name):
 
 def encode_onehot_efficient(labels):
     values = array(labels)
-    onehot_encoder = OneHotEncoder(sparse=False)
+    onehot_encoder = OneHotEncoder(sparse_ouput=True)
     label_encoder = LabelEncoder()
     integer_encoded = label_encoder.fit_transform(values)
     integer_encoded = integer_encoded.reshape(len(integer_encoded), 1)
