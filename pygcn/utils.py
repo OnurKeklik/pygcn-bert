@@ -6,6 +6,53 @@ from sklearn.preprocessing import OneHotEncoder
 from sklearn.preprocessing import LabelEncoder
 from numpy import array
 import json
+import os, psutil
+
+def getAdjLabels(path, file_name):
+    edges_unordered = np.loadtxt("{}{}.cites".format(path, file_name),
+                                    dtype=np.int32)
+    idx_initial = []
+    with open("{}{}.content".format(path, file_name)) as infile:
+        for line in infile:
+            idx_initial.append(line.split()[0])
+    idx = np.array(np.asarray(idx_initial), dtype=np.int32)
+    idx_map = {j: i for i, j in enumerate(idx)}
+    ll = list(map(idx_map.get, edges_unordered.flatten()));
+    for i in range(0, len(ll)):
+        if ll[i] is None:
+            ll[i] = 0
+    edges = np.array(ll,
+                     dtype=np.int32).reshape(edges_unordered.shape)
+    labels = getLabels(path, file_name)
+    adj = sp.coo_matrix((np.ones(edges.shape[0]), (edges[:, 0], edges[:, 1])),
+                        shape=(labels.shape[0], labels.shape[0]),
+                        dtype=np.float32)
+    labels = torch.LongTensor(np.where(labels)[1])
+    adj = adj + adj.T.multiply(adj.T > adj) - adj.multiply(adj.T > adj)
+    adj = normalize(adj + sp.eye(adj.shape[0]))
+    adj = sparse_mx_to_torch_sparse_tensor(adj)
+    return adj, labels
+
+def getLabels(path, file_name):
+    labels_initial = []
+    with open("{}{}.content".format(path, file_name)) as infile:
+        for line in infile:
+            labels_initial.append(line.split()[-1])
+    labels = encode_onehot_efficient(np.asarray(labels_initial))
+    return labels
+
+def getFeatures(path, file_name):
+    features = torch.empty((0, 768), dtype=torch.float32)
+    with open("{}{}.content".format(path, file_name)) as infile:
+        for line in infile:
+            feature = sp.csr_matrix(np.asarray(line.split()[1:-1]), dtype=np.float32)
+            feature = normalize(feature)
+            feature = np.array(feature.todense())
+            feature = torch.FloatTensor(feature)
+            features = torch.cat((features, feature), 0)
+    print(psutil.Process(os.getpid()).memory_info().rss / 1024 ** 2)
+    return features
+
 
 def dataset_split(dataset_name):
     tr = open("../data/" + dataset_name + "/train.json")
@@ -35,8 +82,6 @@ def encode_onehot(labels):
                              dtype=np.int32)
     return labels_onehot
 
-
-#def load_data(path="../data/cora/", dataset="cora"):
 def load_data(args):
     path = "../data/" + args.dataset_name  + "/"
     file_name = "data"
@@ -47,50 +92,8 @@ def load_data(args):
     idx_val = range(train_size, train_size + val_size)
     idx_test = range(train_size + val_size, train_size + val_size + test_size)
 
-    idx_features_labels = np.loadtxt("{}{}.content".format(path, file_name),
-                                        dtype=np.dtype(str))
-    features = sp.csr_matrix(idx_features_labels[:, 1:-1], dtype=np.float32)
-    labels = encode_onehot_efficient(idx_features_labels[:, -1])
-
-    # build graph
-    idx = np.array(idx_features_labels[:, 0], dtype=np.int32)
-    idx_map = {j: i for i, j in enumerate(idx)}
-    edges_unordered = np.loadtxt("{}{}.cites".format(path, file_name),
-                                    dtype=np.int32)
-
-    ll = list(map(idx_map.get, edges_unordered.flatten()));
-    for i in range(0, len(ll)):
-        if ll[i] is None:
-            ll[i] = 0
-
-    edges = np.array(ll,
-                     dtype=np.int32).reshape(edges_unordered.shape)
-
-    adj = sp.coo_matrix((np.ones(edges.shape[0]), (edges[:, 0], edges[:, 1])),
-                        shape=(labels.shape[0], labels.shape[0]),
-                        dtype=np.float32)
-
-    # build symmetric adjacency matrix
-    adj = adj + adj.T.multiply(adj.T > adj) - adj.multiply(adj.T > adj)
-
-    features = normalize(features)
-    adj = normalize(adj + sp.eye(adj.shape[0]))
-    
-    #idx_train = range(0, 9363)
-    #idx_val = range(9363, 9855)
-    #idx_test = range(9855, 16669)
-    #idx_train = range(0, 30390)
-    #idx_val = range(30390, 39771)
-    #idx_test = range(39771, 49356)  
-
-    features = torch.FloatTensor(np.array(features.todense()))
-    labels = torch.LongTensor(np.where(labels)[1])
-    adj = sparse_mx_to_torch_sparse_tensor(adj)
-
-    idx_train = torch.LongTensor(idx_train)
-    idx_val = torch.LongTensor(idx_val)
-    idx_test = torch.LongTensor(idx_test)
-
+    adj, labels = getAdjLabels(path, file_name)
+    features = getFeatures(path, file_name)
     return adj, features, labels, idx_train, idx_val, idx_test
 
 
