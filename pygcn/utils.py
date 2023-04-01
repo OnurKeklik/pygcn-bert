@@ -92,6 +92,10 @@ def load_data(args):
     idx_val = range(train_size, train_size + val_size)
     idx_test = range(train_size + val_size, train_size + val_size + test_size)
 
+    idx_train = torch.LongTensor(idx_train)
+    idx_val = torch.LongTensor(idx_val)
+    idx_test = torch.LongTensor(idx_test)
+
     adj, labels = getAdjLabels(path, file_name)
     features = getFeatures(path, file_name)
     return adj, features, labels, idx_train, idx_val, idx_test
