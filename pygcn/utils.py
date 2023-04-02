@@ -8,7 +8,7 @@ from numpy import array
 import json
 import os, psutil
 
-def getAdjLabels(path, file_name):
+def get_adj_labels(path, file_name):
     edges_unordered = np.loadtxt("{}{}.cites".format(path, file_name),
                                     dtype=np.int32)
     idx_initial = []
@@ -23,7 +23,7 @@ def getAdjLabels(path, file_name):
             ll[i] = 0
     edges = np.array(ll,
                      dtype=np.int32).reshape(edges_unordered.shape)
-    labels = getLabels(path, file_name)
+    labels = get_labels(path, file_name)
     adj = sp.coo_matrix((np.ones(edges.shape[0]), (edges[:, 0], edges[:, 1])),
                         shape=(labels.shape[0], labels.shape[0]),
                         dtype=np.float32)
@@ -33,7 +33,7 @@ def getAdjLabels(path, file_name):
     adj = sparse_mx_to_torch_sparse_tensor(adj)
     return adj, labels
 
-def getLabels(path, file_name):
+def get_labels(path, file_name):
     labels_initial = []
     with open("{}{}.content".format(path, file_name)) as infile:
         for line in infile:
@@ -41,7 +41,7 @@ def getLabels(path, file_name):
     labels = encode_onehot_efficient(np.asarray(labels_initial))
     return labels
 
-def getFeatures(path, file_name):
+def get_features(path, file_name):
     features = torch.empty((0, 768), dtype=torch.float32)
     with open("{}{}.content".format(path, file_name)) as infile:
         for line in infile:
@@ -50,7 +50,31 @@ def getFeatures(path, file_name):
             feature = np.array(feature.todense())
             feature = torch.FloatTensor(feature)
             features = torch.cat((features, feature), 0)
-    print(psutil.Process(os.getpid()).memory_info().rss / 1024 ** 2)
+    #print(psutil.Process(os.getpid()).memory_info().rss / 1024 ** 2)
+    return features
+
+def get_tensor_features_from_list(feature_list):
+    feature = sp.csr_matrix(np.asarray(feature_list, dtype=np.float32))
+    feature = normalize(feature)
+    feature = np.array(feature.todense())
+    feature = torch.FloatTensor(feature)
+    return feature
+
+def get_features_efficient(path, file_name):
+    feature_list = []
+    write_limit = 50000
+    features = torch.empty((0, 768), dtype=torch.float32)
+    with open("{}{}.content".format(path, file_name)) as infile:
+        for line in infile:
+            feature_list.append(line.split()[1:-1])
+            if len(feature_list) >= write_limit:
+                feature = get_tensor_features_from_list(feature_list)
+                features = torch.cat((features, feature), 0)
+                feature_list.clear()
+        if len(feature_list) > 0:
+            feature = get_tensor_features_from_list(feature_list)
+            features = torch.cat((features, feature), 0)
+            feature_list.clear()
     return features
 
 
@@ -96,8 +120,10 @@ def load_data(args):
     idx_val = torch.LongTensor(idx_val)
     idx_test = torch.LongTensor(idx_test)
 
-    adj, labels = getAdjLabels(path, file_name)
-    features = getFeatures(path, file_name)
+    adj, labels = get_adj_labels(path, file_name)
+    print("done getting labels and adj..")
+    features = get_features_efficient(path, file_name)
+    print("done getting features..")
     return adj, features, labels, idx_train, idx_val, idx_test
 
 
