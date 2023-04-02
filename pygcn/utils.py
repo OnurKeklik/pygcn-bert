@@ -66,7 +66,7 @@ def dataset_split(dataset_name):
 
 def encode_onehot_efficient(labels):
     values = array(labels)
-    onehot_encoder = OneHotEncoder(sparse_ouput=True)
+    onehot_encoder = OneHotEncoder(sparse_output=True)
     label_encoder = LabelEncoder()
     integer_encoded = label_encoder.fit_transform(values)
     integer_encoded = integer_encoded.reshape(len(integer_encoded), 1)
