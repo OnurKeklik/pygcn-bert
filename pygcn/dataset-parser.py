@@ -96,7 +96,7 @@ def write_citation(row):
     source_abstract = papers[row['refid']]["abstract"]
     source_title = papers[row['refid']]["title"]
 
-    tokens_source_abstract = tokenizer.tokenize(source_abstract[0:3000])
+    tokens_source_abstract = tokenizer.tokenize(source_abstract[0:512])
     tokens_source_title = tokenizer.tokenize(source_title[0:512])
     #print(len(tokens_source_title))
     #print(len(tokens_source_title))
