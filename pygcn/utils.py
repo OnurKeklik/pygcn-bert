@@ -42,7 +42,7 @@ def get_labels(path, file_name):
     return labels
 
 def get_features(path, file_name):
-    features = torch.empty((0, 768), dtype=torch.float32)
+    features = torch.empty((0, 384), dtype=torch.float32)
     with open("{}{}.content".format(path, file_name)) as infile:
         for line in infile:
             feature = sp.csr_matrix(np.asarray(line.split()[1:-1]), dtype=np.float32)
@@ -63,7 +63,7 @@ def get_tensor_features_from_list(feature_list):
 def get_features_efficient(path, file_name):
     feature_list = []
     write_limit = 50000
-    features = torch.empty((0, 768), dtype=torch.float32)
+    features = torch.empty((0, 384), dtype=torch.float32)
     with open("{}{}.content".format(path, file_name)) as infile:
         for line in infile:
             feature_list.append(line.split()[1:-1])

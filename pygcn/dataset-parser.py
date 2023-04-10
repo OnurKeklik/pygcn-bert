@@ -33,8 +33,8 @@ test = json.load(te)
 
 device = "cuda:0" if torch.cuda.is_available() else "cpu"
 print("current device is: " + device)
-tokenizer = AutoTokenizer.from_pretrained("pritamdeka/S-Scibert-snli-multinli-stsb")
-model = AutoModel.from_pretrained("pritamdeka/S-Scibert-snli-multinli-stsb")
+tokenizer = AutoTokenizer.from_pretrained("sentence-transformers/paraphrase-MiniLM-L12-v2")
+model = AutoModel.from_pretrained("sentence-transformers/paraphrase-MiniLM-L12-v2")
 model = model.to(device)
 
 #Mean Pooling - Take attention mask into account for correct averaging
