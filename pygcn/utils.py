@@ -78,14 +78,18 @@ def get_features_efficient(path, file_name):
     return features
 
 
-def dataset_split(dataset_name):
+def dataset_split(args):
+    dataset_name = args.dataset_name
+    val_size = 0
+    if not args.exclude_val:
+        v = open("../data/" + dataset_name + "/val.json")
+        val = json.load(v)
+        val_size = len(val)
     tr = open("../data/" + dataset_name + "/train.json")
-    v = open("../data/" + dataset_name + "/val.json")
     te = open("../data/" + dataset_name + "/test.json")
     train = json.load(tr)
-    val = json.load(v)
     test = json.load(te)
-    return len(train), len(val), len(test)
+    return len(train), val_size, len(test)
 
 
 def encode_onehot_efficient(labels):
@@ -111,7 +115,7 @@ def load_data(args):
     file_name = "data"
     print('Loading {}'.format(path + file_name))
 
-    train_size, val_size, test_size = dataset_split(args.dataset_name)
+    train_size, val_size, test_size = dataset_split(args)
     idx_train = range(0, train_size)
     idx_val = range(train_size, train_size + val_size)
     idx_test = range(train_size + val_size, train_size + val_size + test_size)

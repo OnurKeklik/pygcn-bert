@@ -8,7 +8,9 @@ from transformers import AutoTokenizer, AutoModel
 from tqdm import tqdm
 
 dataset = sys.argv[1]
+exclude_val = True
 print("selected dataset is: " + sys.argv[1])
+print("excluding validation dataset: " + str(exclude_val))
 current_idx = 1
 idx_dictionary = { }
 f1 = open("../data/" + dataset + "/data.cites", "w")
@@ -96,7 +98,7 @@ def write_citation(row):
     source_abstract = papers[row['refid']]["abstract"]
     source_title = papers[row['refid']]["title"]
 
-    tokens_source_abstract = tokenizer.tokenize(source_abstract[0:512])
+    tokens_source_abstract = tokenizer.tokenize(source_abstract[0:2600])
     tokens_source_title = tokenizer.tokenize(source_title[0:512])
     #print(len(tokens_source_title))
     #print(len(tokens_source_title))
@@ -162,11 +164,12 @@ for i in tqdm(range(len(train))):
     d = train[i]
     write_citation(context[d["context_id"]])
     train_length = train_length + 1
-print("generating embeddings for validation dataset..")
-for i in tqdm(range(len(val))):
-    d = val[i]
-    write_citation(context[d["context_id"]])
-    val_length = val_length + 1
+if not exclude_val:
+    print("generating embeddings for validation dataset..")
+    for i in tqdm(range(len(val))):
+        d = val[i]
+        write_citation(context[d["context_id"]])
+        val_length = val_length + 1
 print("generating embeddings for test dataset..")
 for i in tqdm(range(len(test))):
     d = test[i]
@@ -175,7 +178,7 @@ for i in tqdm(range(len(test))):
 f1.close()
 f2.close()
 
-statistics_file = open("../data/" + dataset + "/statistics-new.txt", "w")
+statistics_file = open("../data/" + dataset + "/statistics.txt", "w")
 s1 = ("train index:0" + " end:" + str(train_length) + "\n")
 s2 = ("val index:" + str(train_length) + " end:" + str(train_length + val_length) + "\n")
 s3 = ("test index:" + str(train_length + val_length) + " end:" + str(train_length + val_length + test_length) + "\n")

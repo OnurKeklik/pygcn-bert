@@ -30,6 +30,8 @@ parser.add_argument('--hidden', type=int, default=128,
 parser.add_argument('--dropout', type=float, default=0.7,
                     help='Dropout rate (1 - keep probability).')
 parser.add_argument('--dataset_name', type=str)
+parser.add_argument('--exclude_val', type=bool, default=True, 
+                    help="Excludes validation dataset, can be useful for big datasets")
 
 loss = torch.nn.NLLLoss()
 
@@ -58,7 +60,8 @@ if args.cuda:
     adj = adj.cuda()
     labels = labels.cuda()
     idx_train = idx_train.cuda()
-    idx_val = idx_val.cuda()
+    if not args.exclude_val:
+        idx_val = idx_val.cuda()
     idx_test = idx_test.cuda()
 
 
@@ -75,14 +78,6 @@ def train(epoch):
     loss_train.backward()
     optimizer.step()
 
-    if not args.fastmode:
-        # Evaluate validation set performance separately,
-        # deactivates dropout during validation run.
-        model.eval()
-        output = model(features, adj)
-
-    loss_val = loss(output[idx_val], labels[idx_val])
-    acc_val, mrr_val, recall_val = accuracy(output[idx_val], labels[idx_val])
     print('Epoch: {:04d}'.format(epoch+1),
           'loss_train: {:.4f}'.format(loss_train.item()),
           'acc_train: {:.4f}'.format(acc_train.item()),
@@ -92,17 +87,29 @@ def train(epoch):
           'recall@7_train: {:.4f}'.format(recall_train[6]),
           'recall@10_train: {:.4f}'.format(recall_train[9]),
           'mrr_train: {:.4f}'.format(mrr_train),
-          'loss_val: {:.4f}'.format(loss_val.item()),
-          'acc_val: {:.4f}'.format(acc_val.item()),
-          'recall@1_val: {:.4f}'.format(recall_val[0]),
-          'recall@3_val: {:.4f}'.format(recall_val[2]),
-          'recall@5_val: {:.4f}'.format(recall_val[4]),
-          'recall@7_val: {:.4f}'.format(recall_val[6]),
-          'recall@10_val: {:.4f}'.format(recall_val[9]),
-          'mrr_val: {:.4f}'.format(mrr_val),
           'time: {:.4f}s'.format(time.time() - t))
+    if not args.exclude_val:
+        val()
     test()
 
+def val():
+    if not args.fastmode:
+        # Evaluate validation set performance separately,
+        # deactivates dropout during validation run.
+        model.eval()
+        output = model(features, adj)
+
+    loss_val = loss(output[idx_val], labels[idx_val])
+    acc_val, mrr_val, recall_val = accuracy(output[idx_val], labels[idx_val])
+    print("Validation set results:",
+      "loss= {:.4f}".format(loss_val.item()),
+      "accuracy= {:.4f}".format(acc_val.item()),
+      'recall@1: {:.4f}'.format(recall_val[0]),
+      'recall@3: {:.4f}'.format(recall_val[2]),
+      'recall@5: {:.4f}'.format(recall_val[4]),
+      'recall@7: {:.4f}'.format(recall_val[6]),
+      'recall@10: {:.4f}'.format(recall_val[9]),
+      "mrr= {:.4f}".format(mrr_val))
 
 def test():
     model.eval()
