@@ -30,7 +30,7 @@ def get_adj_labels(path, file_name):
     labels = torch.LongTensor(labels.nonzero()[1])
     adj = adj + adj.T.multiply(adj.T > adj) - adj.multiply(adj.T > adj)
     adj = normalize(adj + sp.eye(adj.shape[0]))
-    adj = sparse_mx_to_torch_sparse_tensor(adj)
+    #adj = sparse_mx_to_torch_sparse_tensor(adj)
     return adj, labels
 
 def get_labels(path, file_name):
@@ -80,16 +80,11 @@ def get_features_efficient(path, file_name):
 
 def dataset_split(args):
     dataset_name = args.dataset_name
-    val_size = 0
-    if not args.exclude_val:
-        v = open("../data/" + dataset_name + "/val.json")
-        val = json.load(v)
-        val_size = len(val)
     tr = open("../data/" + dataset_name + "/train.json")
     te = open("../data/" + dataset_name + "/test.json")
     train = json.load(tr)
     test = json.load(te)
-    return len(train), val_size, len(test)
+    return len(train), len(test)
 
 
 def encode_onehot_efficient(labels):
@@ -115,20 +110,18 @@ def load_data(args):
     file_name = "data"
     print('Loading {}'.format(path + file_name))
 
-    train_size, val_size, test_size = dataset_split(args)
+    train_size, test_size = dataset_split(args)
     idx_train = range(0, train_size)
-    idx_val = range(train_size, train_size + val_size)
-    idx_test = range(train_size + val_size, train_size + val_size + test_size)
+    idx_test = range(train_size, train_size + test_size)
 
-    idx_train = torch.LongTensor(idx_train)
-    idx_val = torch.LongTensor(idx_val)
-    idx_test = torch.LongTensor(idx_test)
+    #idx_train = torch.LongTensor(idx_train)
+    #idx_test = torch.LongTensor(idx_test)
 
     adj, labels = get_adj_labels(path, file_name)
     print("done getting labels and adj..")
     features = get_features_efficient(path, file_name)
     print("done getting features..")
-    return adj, features, labels, idx_train, idx_val, idx_test
+    return adj, features, labels, idx_train, idx_test
 
 
 def normalize(mx):

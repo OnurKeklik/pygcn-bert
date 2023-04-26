@@ -8,9 +8,7 @@ from transformers import AutoTokenizer, AutoModel
 from tqdm import tqdm
 
 dataset = sys.argv[1]
-exclude_val = True
 print("selected dataset is: " + sys.argv[1])
-print("excluding validation dataset: " + str(exclude_val))
 current_idx = 1
 idx_dictionary = { }
 f1 = open("../data/" + dataset + "/data.cites", "w")
@@ -27,13 +25,11 @@ context = json.load(c)
 papers = json.load(p)
 
 tr = open("../data/" + dataset + "/train.json")
-v = open("../data/" + dataset + "/val.json")
 te = open("../data/" + dataset + "/test.json")
 train = json.load(tr)
-val = json.load(v)
 test = json.load(te)
 
-device = "cuda:0" if torch.cuda.is_available() else "cpu"
+device = "cuda" if torch.cuda.is_available() else "cpu"
 print("current device is: " + device)
 tokenizer = AutoTokenizer.from_pretrained("sentence-transformers/paraphrase-MiniLM-L12-v2")
 model = AutoModel.from_pretrained("sentence-transformers/paraphrase-MiniLM-L12-v2")
@@ -157,19 +153,12 @@ def write_citation(row):
     f2.write(str(target_id) + " " + convert_list_to_string(sentence_embeddings) + "  " + str(source_id) + "\n")
 
 train_length = 0
-val_length = 0
 test_length = 0
 print("generating embeddings for train dataset..")
 for i in tqdm(range(len(train))):
     d = train[i]
     write_citation(context[d["context_id"]])
     train_length = train_length + 1
-if not exclude_val:
-    print("generating embeddings for validation dataset..")
-    for i in tqdm(range(len(val))):
-        d = val[i]
-        write_citation(context[d["context_id"]])
-        val_length = val_length + 1
 print("generating embeddings for test dataset..")
 for i in tqdm(range(len(test))):
     d = test[i]
@@ -180,8 +169,7 @@ f2.close()
 
 statistics_file = open("../data/" + dataset + "/statistics.txt", "w")
 s1 = ("train index:0" + " end:" + str(train_length) + "\n")
-s2 = ("val index:" + str(train_length) + " end:" + str(train_length + val_length) + "\n")
-s3 = ("test index:" + str(train_length + val_length) + " end:" + str(train_length + val_length + test_length) + "\n")
-statistics_file.write(s1 + s2 + s3)
+s2 = ("test index:" + str(train_length) + " end:" + str(train_length + test_length) + "\n")
+statistics_file.write(s1 + s2)
 statistics_file.close()
 print("done!")
