@@ -11,6 +11,7 @@ import torch.optim as optim
 
 from utils import load_data, accuracy, sparse_mx_to_torch_sparse_tensor
 from models import GCN
+from tqdm import tqdm
 # Training settings
 parser = argparse.ArgumentParser()
 parser.add_argument('--no_cuda', action='store_true', default=False,
@@ -72,7 +73,7 @@ def train(epoch):
     t = time.time()
     model.train()
     total_batch_iterations = int(len(indx_train) / args.batch_size)
-    for i in range(0, total_batch_iterations):
+    for i in tqdm(range(0, total_batch_iterations)):
         optimizer.zero_grad()
         next_batch = current_batch + args.batch_size if epoch % 2 == 0 else current_batch - args.batch_size
         idx_train = range(current_batch, next_batch) if next_batch > current_batch else range(next_batch, current_batch)
