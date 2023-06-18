@@ -105,7 +105,7 @@ def train(epoch):
             recall_train_avg[j] = recall_train_avg[j] + recall_train[j]
         batch_log= "batch time:" + str(datetime.now()) + ", total batch:" + str(total_batch_iterations) + ", current batch:" + str(i) + "\n"
         logs.write(batch_log)
-        if epoch % args.test_batch_gap == 0:
+        if i % args.test_batch_gap == 0:
             test()
 
     epoch_log = ('Epoch: {:04d}'.format(epoch+1),
@@ -119,7 +119,7 @@ def train(epoch):
         'time: {:.4f}s'.format(time.time() - t))
     print(epoch_log)
     logs.write(str(epoch_log) + "\n")
-    if i % args.test_gap == 0:
+    if epoch % args.test_gap == 0:
         test()
         
 
