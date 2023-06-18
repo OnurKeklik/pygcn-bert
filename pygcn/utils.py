@@ -84,7 +84,7 @@ def dataset_split(args):
     te = open("../data/" + dataset_name + "/test.json")
     train = json.load(tr)
     test = json.load(te)
-    return len(train), len(test)
+    return len(train), min(len(test), args.max_test_size)
 
 
 def encode_onehot_efficient(labels):
