@@ -84,7 +84,7 @@ def dataset_split(args):
     te = open("../data/" + dataset_name + "/test.json")
     train = json.load(tr)
     test = json.load(te)
-    return len(train), min(len(test), args.max_test_size)
+    return len(train), len(test)
 
 
 def encode_onehot_efficient(labels):
@@ -133,10 +133,9 @@ def normalize(mx):
     mx = r_mat_inv.dot(mx)
     return mx
 
-
 def accuracy(output, labels):
     mrr = 0
-    recall_list = [0,0,0,0,0,0,0,0,0,0]
+    recall = [0,0,0,0,0,0,0,0,0,0]
     top_preds = torch.topk(output, 50).indices;
     for i in range(0, len(labels)):
         top_preds_list = top_preds[i].tolist()
@@ -146,14 +145,10 @@ def accuracy(output, labels):
                 mrr = mrr + (1 / (j + 1))
                 if j < 10:
                     for k in range(j, 10):
-                        recall_list[k] = recall_list[k] + 1;
+                        recall[k] = recall[k] + 1;
                 break
 
-    recall_scores = [x / len(labels) for x in recall_list]
-    preds = output.max(1)[1].type_as(labels)
-    correct = preds.eq(labels).double()
-    correct = correct.sum()
-    return correct / len(labels), mrr / len(labels), recall_scores
+    return mrr, recall
 
 
 def sparse_mx_to_torch_sparse_tensor(sparse_mx):

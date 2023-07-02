@@ -12,8 +12,6 @@ import torch.optim as optim
 from utils import load_data, accuracy, sparse_mx_to_torch_sparse_tensor
 from models import GCN
 from tqdm import tqdm
-from datetime import datetime
-import os
 
 # Training settings
 parser = argparse.ArgumentParser()
@@ -31,14 +29,14 @@ parser.add_argument('--hidden', type=int, default=128,
 parser.add_argument('--dropout', type=float, default=0.5,
                     help='Dropout rate (1 - keep probability).')
 parser.add_argument('--dataset_name', type=str)
-parser.add_argument('--batch_size', type=int, default=1000,
-                        help='batchsize for train')
-parser.add_argument('--max_test_size', type=int, default=10000,
-                            help='max test size to use')
-parser.add_argument('--test_gap', type=int, default=5,
-                        help='run on test dataset between epochs')
+parser.add_argument('--train_batch_size', type=int, default=1000,
+                        help='batch size for train dataset')
+parser.add_argument('--test_batch_size', type=int, default=1000,
+                        help='batch size for test dataset')
+parser.add_argument('--test_epoch_gap', type=int, default=5,
+                        help='run on test dataset between train epochs')
 parser.add_argument('--test_batch_gap', type=int, default=100,
-                        help='run on test dataset between batches')
+                        help='run on test dataset between train batches')
 loss = torch.nn.NLLLoss()
 
 args = parser.parse_args()
@@ -52,15 +50,8 @@ if args.cuda:
 else:
     device = torch.device("cpu")
 
-model_directory = "../model/" + args.dataset_name
-if not os.path.isdir(model_directory):
-    os.makedirs(model_directory)
-model_path = os.path.join(model_directory, "model"+".pth")
-
-
-logs = open("../data/" + args.dataset_name + "/logs.txt", "w")
 # Load data
-adj, features, labels, indx_train, idx_test = load_data(args)
+adj, features, labels, indx_train, indx_test = load_data(args)
 # Model and optimizer
 model = GCN(nfeat=features.shape[1],
             nhid=args.hidden,
@@ -69,79 +60,80 @@ model = GCN(nfeat=features.shape[1],
 optimizer = optim.Adam(model.parameters(),
                        lr=args.lr, weight_decay=args.weight_decay)
 
-top_mrr = 0
 features = features.to(device)
 labels = labels.to(device)
-idx_output_train = torch.LongTensor(range(0, args.batch_size)).to(device)
+idx_output_train = torch.LongTensor(range(0, args.train_batch_size)).to(device)
+train_batch_iterations = int(len(indx_train) / args.train_batch_size)
+idx_output_test = torch.LongTensor(range(0, args.test_batch_size)).to(device)
+test_batch_iterations = int(len(indx_test) / args.test_batch_size)
 
-idx_output_test = torch.LongTensor(range(0, len(idx_test))).to(device)
-adj_test = sparse_mx_to_torch_sparse_tensor(adj[idx_test.start:idx_test.stop, idx_test.start:idx_test.stop]).to(device)
-idx_test = torch.LongTensor(idx_test).to(device)
 def train(epoch):
-    loss_train_avg = 0
-    recall_train_avg = [0,0,0,0,0,0,0,0,0,0]
-    acc_train_avg = 0
-    mrr_train_avg = 0
-    current_batch = 0 if epoch % 2 == 0 else len(indx_train)
     t = time.time()
+    total_labels = 0
+    mrr = 0
+    recall = [0,0,0,0,0,0,0,0,0,0]
+    current_batch = indx_train.start if epoch % 2 == 0 else indx_train.stop
     model.train()
-    total_batch_iterations = int(len(indx_train) / args.batch_size)
-    for i in tqdm(range(0, total_batch_iterations)):
+    for i in tqdm(range(0, train_batch_iterations)):
         optimizer.zero_grad()
-        next_batch = current_batch + args.batch_size if epoch % 2 == 0 else current_batch - args.batch_size
+        next_batch = current_batch + args.train_batch_size if epoch % 2 == 0 else current_batch - args.train_batch_size
         idx_train = range(current_batch, next_batch) if next_batch > current_batch else range(next_batch, current_batch)
         adj_train = sparse_mx_to_torch_sparse_tensor(adj[idx_train.start:idx_train.stop, idx_train.start:idx_train.stop]).to(device)
         idx_train = torch.LongTensor(idx_train).to(device)
         output = model(features[idx_train], adj_train)
         loss_train = loss(output[idx_output_train], labels[idx_train])
-        acc_train, mrr_train, recall_train = accuracy(output[idx_output_train], labels[idx_train])
+        mrr_train, recall_train = accuracy(output[idx_output_train], labels[idx_train])
+        mrr = mrr + mrr_train
+        recall = [sum(x) for x in zip(recall, recall_train)]
+        total_labels = total_labels + len(labels[idx_train])
         loss_train.backward()
         optimizer.step()
         current_batch = next_batch
-        loss_train_avg = loss_train_avg + loss_train.item()
-        acc_train_avg = acc_train_avg + acc_train.item()
-        mrr_train_avg = mrr_train_avg + mrr_train
-        for j in range(0, len(recall_train_avg)):
-            recall_train_avg[j] = recall_train_avg[j] + recall_train[j]
-        batch_log= "batch time:" + str(datetime.now()) + ", total batch:" + str(total_batch_iterations) + ", current batch:" + str(i) + "\n"
-        logs.write(batch_log)
-        if i % args.test_batch_gap == 0:
+        if (i + 1) % args.test_batch_gap == 0:
             test()
+    recall = [x / total_labels for x in recall]
+    mrr = mrr / total_labels
 
-    epoch_log = ('Epoch: {:04d}'.format(epoch+1),
-        'loss_train: {:.4f}'.format(loss_train_avg / total_batch_iterations),
-        'acc_train: {:.4f}'.format(acc_train_avg / total_batch_iterations),
-        'recall@3_train: {:.4f}'.format(recall_train_avg[2] / total_batch_iterations),
-        'recall@5_train: {:.4f}'.format(recall_train_avg[4] / total_batch_iterations),
-        'recall@7_train: {:.4f}'.format(recall_train_avg[6] / total_batch_iterations),
-        'recall@10_train: {:.4f}'.format(recall_train_avg[9] / total_batch_iterations),
-        'mrr_train: {:.4f}'.format(mrr_train_avg / total_batch_iterations),
+    print('Epoch: {:04d}'.format(epoch+1),
+        'recall@3_train: {:.4f}'.format(recall[2]),
+        'recall@5_train: {:.4f}'.format(recall[4]),
+        'recall@7_train: {:.4f}'.format(recall[6]),
+        'recall@10_train: {:.4f}'.format(recall[9]),
+        'mrr_train: {:.4f}'.format(mrr),
         'time: {:.4f}s'.format(time.time() - t))
-    print(epoch_log)
-    logs.write(str(epoch_log) + "\n")
-    if epoch % args.test_gap == 0:
+    if (epoch + 1) % args.test_epoch_gap == 0:
         test()
         
 
 def test():
-    global top_mrr
+    t = time.time()
+    total_labels = 0
+    mrr = 0
+    recall = [0,0,0,0,0,0,0,0,0,0]
     model.eval()
-    output = model(features[idx_test], adj_test)
-    loss_test = loss(output[idx_output_test], labels[idx_test])
-    acc_test, mrr_test, recall_test = accuracy(output[idx_output_test], labels[idx_test])
-    test_log = ("Test set results:",
-        "loss= {:.4f}".format(loss_test.item()),
-        "accuracy= {:.4f}".format(acc_test.item()),
-        'recall@3: {:.4f}'.format(recall_test[2]),
-        'recall@5: {:.4f}'.format(recall_test[4]),
-        'recall@7: {:.4f}'.format(recall_test[6]),
-        'recall@10: {:.4f}'.format(recall_test[9]),
-        "mrr= {:.4f}".format(mrr_test))
-    print(test_log)
-    logs.write(str(test_log) + "\n")
-    if mrr_test > top_mrr:
-        top_mrr = mrr_test
-        torch.save(model, model_path)
+    current_batch = indx_test.start
+    for i in range(0, test_batch_iterations):
+        next_batch = current_batch + args.test_batch_size
+        idx_test = range(current_batch, next_batch)
+        adj_test = sparse_mx_to_torch_sparse_tensor(adj[idx_test.start:idx_test.stop, idx_test.start:idx_test.stop]).to(device)
+        idx_test = torch.LongTensor(idx_test).to(device)
+        output = model(features[idx_test], adj_test)
+        loss_test = loss(output[idx_output_test], labels[idx_test])
+        mrr_test, recall_test = accuracy(output[idx_output_test], labels[idx_test])
+        mrr = mrr + mrr_test
+        recall = [sum(x) for x in zip(recall, recall_test)]
+        total_labels = total_labels + len(labels[idx_test])
+        current_batch = next_batch
+    
+    recall = [x / total_labels for x in recall]
+    mrr = mrr / total_labels
+    print("Test set results:",
+        'recall@3: {:.4f}'.format(recall[2]),
+        'recall@5: {:.4f}'.format(recall[4]),
+        'recall@7: {:.4f}'.format(recall[6]),
+        'recall@10: {:.4f}'.format(recall[9]),
+        "mrr: {:.4f}".format(mrr),
+        'time: {:.4f}s'.format(time.time() - t))
 
 # Train model
 t_total = time.time()
@@ -152,5 +144,3 @@ print("Total time elapsed: {:.4f}s".format(time.time() - t_total))
 
 # Testing
 test()
-
-logs.close()
