@@ -93,6 +93,7 @@ def train(epoch):
     mrr = mrr / total_labels
 
     print('Epoch: {:04d}'.format(epoch+1),
+        'accuracy_train: {:.4f}'.format(recall[0]),
         'recall@3_train: {:.4f}'.format(recall[2]),
         'recall@5_train: {:.4f}'.format(recall[4]),
         'recall@7_train: {:.4f}'.format(recall[6]),
@@ -127,6 +128,7 @@ def test():
     recall = [x / total_labels for x in recall]
     mrr = mrr / total_labels
     print("Test set results:",
+        'accuracy: {:.4f}'.format(recall[0]),
         'recall@3: {:.4f}'.format(recall[2]),
         'recall@5: {:.4f}'.format(recall[4]),
         'recall@7: {:.4f}'.format(recall[6]),
