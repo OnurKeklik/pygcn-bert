@@ -64,8 +64,6 @@ features = features.to(device)
 labels = labels.to(device)
 idx_output_train = torch.LongTensor(range(0, args.train_batch_size)).to(device)
 train_batch_iterations = int(len(indx_train) / args.train_batch_size)
-idx_output_test = torch.LongTensor(range(0, args.test_batch_size)).to(device)
-test_batch_iterations = int(len(indx_test) / args.test_batch_size)
 
 def train(epoch):
     t = time.time()
@@ -112,12 +110,13 @@ def test():
     recall = [0,0,0,0,0,0,0,0,0,0]
     model.eval()
     current_batch = indx_test.start
-    for i in range(0, test_batch_iterations):
-        next_batch = current_batch + args.test_batch_size
+    while current_batch < indx_test.stop:
+        next_batch = min(current_batch + args.test_batch_size, indx_test.stop)
         idx_test = range(current_batch, next_batch)
         adj_test = sparse_mx_to_torch_sparse_tensor(adj[idx_test.start:idx_test.stop, idx_test.start:idx_test.stop]).to(device)
         idx_test = torch.LongTensor(idx_test).to(device)
         output = model(features[idx_test], adj_test)
+        idx_output_test = torch.LongTensor(range(0, next_batch - current_batch)).to(device)
         loss_test = loss(output[idx_output_test], labels[idx_test])
         mrr_test, recall_test = accuracy(output[idx_output_test], labels[idx_test])
         mrr = mrr + mrr_test
