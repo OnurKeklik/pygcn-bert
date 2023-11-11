@@ -6,6 +6,12 @@ This repository contains a PyTorch implementation of Graph Convolutional Network
 
 Datasets used in this project are available for download at [Google Drive](https://drive.google.com/drive/folders/11n4YVHgUPfzetJi-y5voFpmRIjiBM0lQ).
 
+Available datasets for training:
+* FullTextPeerRead
+* ACL-200
+* RefSeer
+* arXiv
+
 ## Installation
 
 Installation instructions will be available soon. Stay tuned!
@@ -13,10 +19,10 @@ Installation instructions will be available soon. Stay tuned!
 ## Usage
 To parse a dataset, run:
 
-```python dataset-parser.py ["datasetname"]```
+```python dataset-parser.py "datasetname"```
 
 To train the model with a specific dataset, run:
 
-```python train.py --dataset_name=["datasetname"]```
+```python train.py --dataset_name="datasetname"```
 
 Please refer to train.py for additional parameters and customization options.
