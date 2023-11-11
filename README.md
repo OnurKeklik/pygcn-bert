@@ -1,19 +1,22 @@
-Graph Convolutional Networks in PyTorch
-====
+# Local Citation Recommendation by Graph Convolutional Networks with BERT Embeddings
 
-PyTorch implementation of Graph Convolutional Networks (GCNs) for semi-supervised classification.
+This repository contains a PyTorch implementation of Graph Convolutional Networks (GCNs) with BERT Embeddings for local citation recommendation. The project aims to enhance citation recommendation systems by leveraging graph-based neural networks and contextual embeddings from BERT.
 
-This implementation makes use of the Full Context PeerRead dataset (https://bert-gcn-for-paper-citation.s3.ap-northeast-2.amazonaws.com/PeerRead/full_context_PeerRead.csv) and BERT embeddings as feature.
+## Datasets
+
+Datasets used in this project are available for download at [Google Drive](https://drive.google.com/drive/folders/11n4YVHgUPfzetJi-y5voFpmRIjiBM0lQ).
 
 ## Installation
 
-```python setup.py install```
-
-## Requirements
-
-  * PyTorch 0.4 or 0.5
-  * Python 2.7 or 3.6
+Installation instructions will be available soon. Stay tuned!
 
 ## Usage
-```python createdataset.py```
-```python train.py```
+To parse a dataset, run:
+
+```python dataset-parser.py ["datasetname"]```
+
+To train the model with a specific dataset, run:
+
+```python train.py --dataset_name=["datasetname"]```
+
+Please refer to train.py for additional parameters and customization options.
