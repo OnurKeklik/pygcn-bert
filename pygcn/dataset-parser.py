@@ -42,7 +42,6 @@ def mean_pooling(model_output, attention_mask):
     sum_embeddings = torch.sum(token_embeddings * input_mask_expanded, 1)
     sum_mask = torch.clamp(input_mask_expanded.sum(1), min=1e-9)
     return sum_embeddings / sum_mask
-    return sum_embeddings
 
 def _truncate_seq_pair(tokens_a, tokens_b, max_length):
     """Truncates a sequence pair in place to the maximum length."""
@@ -60,15 +59,12 @@ def convert_list_to_string(org_list, seperator=' '):
     converted_str = ""
     for i in range(0, len(org_list)):
         converted_str = converted_str + str(org_list[i]) + "    "
-    #return converted_str[:-1]
     return converted_str
 
 def write_citation(row):
     global current_idx
     global idx_dictionary
     ##unique id generator
-    #source_id = row['refid']
-    #target_id = row['citing_id']
     source_id = 0
     target_id = 0
     if (row['refid'] in idx_dictionary.keys()):
@@ -86,8 +82,6 @@ def write_citation(row):
         current_idx = current_idx + 1
 
     masked_text = row["masked_text"]
-    #masked_text = masked_text.replace("OTHERCIT", "")
-    #masked_text = masked_text.replace("()", "")
     masked_text_arr = masked_text.split("TARGETCIT")
     left = masked_text_arr[0]
     right = masked_text_arr[1]
@@ -96,8 +90,6 @@ def write_citation(row):
 
     tokens_source_abstract = tokenizer.tokenize(source_abstract[0:2600])
     tokens_source_title = tokenizer.tokenize(source_title[0:512])
-    #print(len(tokens_source_title))
-    #print(len(tokens_source_title))
     tokens_a = tokenizer.tokenize(left[-512:])
     tokens_b = tokenizer.tokenize(right[0:512])
     # Modifies `tokens_a` and `tokens_b` in place so that the total
